@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.querySelector("#orderForm");
-  console.log("FORM UPDATED");
+  console.log("FORM UPDATED TEST");
   if (!form) return;
 
   function setText(selector, value) {
