@@ -1,6 +1,8 @@
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   const form = document.querySelector("#orderForm");
   if (!form) return;
+
+  let currentMember = null;
 
   const MONTHS_DE_FULL = [
     "Januar",
@@ -32,6 +34,17 @@ document.addEventListener("DOMContentLoaded", () => {
     "Dez.",
   ];
 
+  try {
+    const ms = window.$memberstackDom;
+
+    if (ms) {
+      const memberResponse = await ms.getCurrentMember();
+      currentMember = memberResponse?.data || null;
+    }
+  } catch (error) {
+    console.warn("[Booking Form] Memberstack member not found:", error);
+  }
+
   function setText(selector, value) {
     document.querySelectorAll(selector).forEach((el) => {
       el.textContent = value || "";
@@ -41,6 +54,8 @@ document.addEventListener("DOMContentLoaded", () => {
   function setValue(selector, value) {
     document.querySelectorAll(selector).forEach((el) => {
       el.value = value || "";
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
     });
   }
 
@@ -49,13 +64,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const str = String(value).trim();
 
-    // dd.mm.yyyy
     let match = str.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
     if (match) {
       return new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1]));
     }
 
-    // yyyy-mm-dd
     match = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
     if (match) {
       return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
@@ -102,6 +115,34 @@ document.addEventListener("DOMContentLoaded", () => {
     }).format(number);
   }
 
+  function getMemberField(slug) {
+    return currentMember?.customFields?.[slug] || "";
+  }
+
+  function prefillMemberData() {
+    if (!currentMember) return;
+
+    setValue("#Email", currentMember.auth?.email || "");
+    setValue("#Vorname", getMemberField("first-name"));
+    setValue("#Nachname", getMemberField("last-name"));
+
+    if (getMemberField("country")) {
+      setValue('select[name="Land"]', getMemberField("country"));
+    }
+
+    if (getMemberField("address")) {
+      setValue("#strasse", getMemberField("address"));
+    }
+
+    if (getMemberField("zip")) {
+      setValue("#plz", getMemberField("zip"));
+    }
+
+    if (getMemberField("city")) {
+      setValue("#Stadt", getMemberField("city"));
+    }
+  }
+
   function updateBookingForm(button) {
     const courseName = button.getAttribute("data-course-name") || "";
     const startDate = button.getAttribute("data-start-date") || "";
@@ -111,23 +152,23 @@ document.addEventListener("DOMContentLoaded", () => {
     const memberPrice = button.getAttribute("data-member-price") || "";
     const planId = button.getAttribute("data-plan-id") || "";
 
+    const isExistingMember = !!currentMember;
+    const selectedPrice =
+      isExistingMember && memberPrice ? memberPrice : regularPrice;
+    const formattedPrice = formatPrice(selectedPrice);
     const dateRange = formatDateRange(startDate, endDate);
-    const formattedPrice = formatPrice(regularPrice || memberPrice);
 
-    // Left form header
     setText("[data-form-course-name]", courseName);
     setText("[data-form-start-date]", dateRange);
     setText("[data-form-end-date]", "");
     setText("[data-form-location]", location);
 
-    // Summary
     setText("[data-form-summary-course]", courseName);
     setText("[data-form-summary-start-date]", dateRange);
     setText("[data-form-summary-end-date]", "");
     setText("[data-form-summary-location]", location);
-    setText("[data-form-price]", formattedPrice);
+    setText("[data-form-price]", `€ ${formattedPrice}`);
 
-    // Hidden fields
     setValue("[data-hidden-course-name]", courseName);
     setValue("[data-hidden-start-date]", startDate);
     setValue("[data-hidden-end-date]", endDate);
@@ -136,19 +177,25 @@ document.addEventListener("DOMContentLoaded", () => {
     setValue("[data-hidden-member-price]", memberPrice);
     setValue("[data-hidden-plan-id]", planId);
 
+    setValue("[data-hidden-selected-price]", selectedPrice);
+    setValue(
+      "[data-hidden-price-type]",
+      isExistingMember ? "member" : "regular",
+    );
+
     const submitButton = form.querySelector('input[type="submit"]');
     if (submitButton && formattedPrice) {
       submitButton.value = `Jetzt verbindlich buchen — € ${formattedPrice}`;
     }
 
+    prefillMemberData();
+
     console.log("[Booking Form] Updated:", {
+      isExistingMember,
+      selectedPrice,
       courseName,
-      startDate,
-      endDate,
       dateRange,
       location,
-      regularPrice,
-      memberPrice,
       planId,
     });
   }
