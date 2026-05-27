@@ -2,6 +2,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   const form = document.querySelector("#orderForm");
   if (!form) return;
 
+  console.log("Hi!");
+
   const CHECK_MEMBER_EMAIL_ENDPOINT =
     "https://tinguvlwumswhznygirl.supabase.co/functions/v1/check-member-email";
 
