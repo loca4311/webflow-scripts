@@ -160,7 +160,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const formattedPrice = formatPrice(selectedPrice);
 
-    setText("[data-form-price]", `€ ${formattedPrice}`);
+    setText("[data-form-price]", `${formattedPrice}`);
     setValue("[data-hidden-selected-price]", selectedPrice);
     setValue(
       "[data-hidden-price-type]",
