@@ -167,7 +167,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     setText("[data-form-summary-start-date]", dateRange);
     setText("[data-form-summary-end-date]", "");
     setText("[data-form-summary-location]", location);
-    setText("[data-form-price]", `€ ${formattedPrice}`);
+    setText("[data-form-price]", `${formattedPrice}`);
 
     setValue("[data-hidden-course-name]", courseName);
     setValue("[data-hidden-start-date]", startDate);
