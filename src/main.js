@@ -2,7 +2,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   const form = document.querySelector("#orderForm");
   if (!form) return;
 
+  const CHECK_MEMBER_EMAIL_ENDPOINT =
+    "https://tinguvlwumswhznygirl.supabase.co/functions/v1/check-member-email";
+
+  const emailInput = form.querySelector("#Email");
+
   let currentMember = null;
+  let emailBelongsToMember = false;
+  let currentCourseData = null;
 
   const MONTHS_DE_FULL = [
     "Januar",
@@ -83,6 +90,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const end = parseDate(endValue);
 
     if (!start && !end) return "";
+
     if (start && !end) {
       return `${start.getDate()}. ${MONTHS_DE_FULL[start.getMonth()]} ${start.getFullYear()}`;
     }
@@ -119,6 +127,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     return currentMember?.customFields?.[slug] || "";
   }
 
+  function shouldUseMemberPrice() {
+    return !!currentMember || emailBelongsToMember;
+  }
+
   function prefillMemberData() {
     if (!currentMember) return;
 
@@ -126,57 +138,27 @@ document.addEventListener("DOMContentLoaded", async () => {
     setValue("#Vorname", getMemberField("first-name"));
     setValue("#Nachname", getMemberField("last-name"));
 
-    if (getMemberField("country")) {
+    if (getMemberField("country"))
       setValue('select[name="Land"]', getMemberField("country"));
-    }
-
-    if (getMemberField("address")) {
+    if (getMemberField("address"))
       setValue("#strasse", getMemberField("address"));
-    }
-
-    if (getMemberField("zip")) {
-      setValue("#plz", getMemberField("zip"));
-    }
-
-    if (getMemberField("city")) {
-      setValue("#Stadt", getMemberField("city"));
-    }
+    if (getMemberField("zip")) setValue("#plz", getMemberField("zip"));
+    if (getMemberField("city")) setValue("#Stadt", getMemberField("city"));
   }
 
-  function updateBookingForm(button) {
-    const courseName = button.getAttribute("data-course-name") || "";
-    const startDate = button.getAttribute("data-start-date") || "";
-    const endDate = button.getAttribute("data-end-date") || "";
-    const location = button.getAttribute("data-location") || "";
-    const regularPrice = button.getAttribute("data-regular-price") || "";
-    const memberPrice = button.getAttribute("data-member-price") || "";
-    const planId = button.getAttribute("data-plan-id") || "";
+  function applyPrice() {
+    if (!currentCourseData) return;
 
-    const isExistingMember = !!currentMember;
+    const isExistingMember = shouldUseMemberPrice();
+
     const selectedPrice =
-      isExistingMember && memberPrice ? memberPrice : regularPrice;
+      isExistingMember && currentCourseData.memberPrice
+        ? currentCourseData.memberPrice
+        : currentCourseData.regularPrice;
+
     const formattedPrice = formatPrice(selectedPrice);
-    const dateRange = formatDateRange(startDate, endDate);
 
-    setText("[data-form-course-name]", courseName);
-    setText("[data-form-start-date]", dateRange);
-    setText("[data-form-end-date]", "");
-    setText("[data-form-location]", location);
-
-    setText("[data-form-summary-course]", courseName);
-    setText("[data-form-summary-start-date]", dateRange);
-    setText("[data-form-summary-end-date]", "");
-    setText("[data-form-summary-location]", location);
-    setText("[data-form-price]", `${formattedPrice}`);
-
-    setValue("[data-hidden-course-name]", courseName);
-    setValue("[data-hidden-start-date]", startDate);
-    setValue("[data-hidden-end-date]", endDate);
-    setValue("[data-hidden-location]", location);
-    setValue("[data-hidden-regular-price]", regularPrice);
-    setValue("[data-hidden-member-price]", memberPrice);
-    setValue("[data-hidden-plan-id]", planId);
-
+    setText("[data-form-price]", `€ ${formattedPrice}`);
     setValue("[data-hidden-selected-price]", selectedPrice);
     setValue(
       "[data-hidden-price-type]",
@@ -184,20 +166,96 @@ document.addEventListener("DOMContentLoaded", async () => {
     );
 
     const submitButton = form.querySelector('input[type="submit"]');
+
     if (submitButton && formattedPrice) {
       submitButton.value = `Jetzt verbindlich buchen — € ${formattedPrice}`;
     }
 
-    prefillMemberData();
-
-    console.log("[Booking Form] Updated:", {
+    console.log("[Booking Form] Price updated:", {
       isExistingMember,
       selectedPrice,
-      courseName,
-      dateRange,
-      location,
-      planId,
+      emailBelongsToMember,
     });
+  }
+
+  function updateBookingForm(button) {
+    currentCourseData = {
+      courseName: button.getAttribute("data-course-name") || "",
+      startDate: button.getAttribute("data-start-date") || "",
+      endDate: button.getAttribute("data-end-date") || "",
+      location: button.getAttribute("data-location") || "",
+      regularPrice: button.getAttribute("data-regular-price") || "",
+      memberPrice: button.getAttribute("data-member-price") || "",
+      planId: button.getAttribute("data-plan-id") || "",
+    };
+
+    const dateRange = formatDateRange(
+      currentCourseData.startDate,
+      currentCourseData.endDate,
+    );
+
+    setText("[data-form-course-name]", currentCourseData.courseName);
+    setText("[data-form-start-date]", dateRange);
+    setText("[data-form-end-date]", "");
+    setText("[data-form-location]", currentCourseData.location);
+
+    setText("[data-form-summary-course]", currentCourseData.courseName);
+    setText("[data-form-summary-start-date]", dateRange);
+    setText("[data-form-summary-end-date]", "");
+    setText("[data-form-summary-location]", currentCourseData.location);
+
+    setValue("[data-hidden-course-name]", currentCourseData.courseName);
+    setValue("[data-hidden-start-date]", currentCourseData.startDate);
+    setValue("[data-hidden-end-date]", currentCourseData.endDate);
+    setValue("[data-hidden-location]", currentCourseData.location);
+    setValue("[data-hidden-regular-price]", currentCourseData.regularPrice);
+    setValue("[data-hidden-member-price]", currentCourseData.memberPrice);
+    setValue("[data-hidden-plan-id]", currentCourseData.planId);
+
+    prefillMemberData();
+    applyPrice();
+  }
+
+  async function checkEmailInMemberstack() {
+    if (currentMember) return;
+
+    const email = emailInput?.value?.trim().toLowerCase();
+
+    if (!email || !email.includes("@")) {
+      emailBelongsToMember = false;
+      applyPrice();
+      return;
+    }
+
+    try {
+      emailInput.classList.add("is-checking");
+
+      const response = await fetch(CHECK_MEMBER_EMAIL_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      emailBelongsToMember = !!data.exists;
+
+      applyPrice();
+
+      console.log("[Booking Form] Email check:", {
+        email,
+        exists: emailBelongsToMember,
+      });
+    } catch (error) {
+      console.error("[Booking Form] Email check failed:", error);
+
+      emailBelongsToMember = false;
+      applyPrice();
+    } finally {
+      emailInput.classList.remove("is-checking");
+    }
   }
 
   document.addEventListener("click", (event) => {
@@ -206,4 +264,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     updateBookingForm(button);
   });
+
+  emailInput?.addEventListener("blur", checkEmailInMemberstack);
 });
