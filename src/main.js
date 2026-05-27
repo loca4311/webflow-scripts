@@ -159,8 +159,19 @@ document.addEventListener("DOMContentLoaded", async () => {
         : currentCourseData.regularPrice;
 
     const formattedPrice = formatPrice(selectedPrice);
+    const formattedRegularPrice = formatPrice(currentCourseData.regularPrice);
+    const regularPriceEl = document.querySelector("[data-form-regular-price]");
 
-    setText("[data-form-price]", `${formattedPrice}`);
+    setText("[data-form-price]", `€ ${formattedPrice}`);
+    if (regularPriceEl) {
+      if (isExistingMember && currentCourseData.memberPrice) {
+        regularPriceEl.textContent = `€ ${formattedRegularPrice}`;
+        regularPriceEl.classList.add("is-visible");
+      } else {
+        regularPriceEl.textContent = "";
+        regularPriceEl.classList.remove("is-visible");
+      }
+    }
     setValue("[data-hidden-selected-price]", selectedPrice);
     setValue(
       "[data-hidden-price-type]",
