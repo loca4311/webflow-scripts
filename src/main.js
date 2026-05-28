@@ -637,6 +637,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       console.log("[Booking Form] Booking created:", data.booking);
 
+      const referenceEl = form.parentElement?.querySelector(
+        "[data-booking-reference]",
+      );
+
+      if (referenceEl) {
+        referenceEl.textContent = data.booking?.booking_reference || "";
+      }
+
       const successEl = form.parentElement?.querySelector(".w-form-done");
       const failEl = form.parentElement?.querySelector(".w-form-fail");
 
