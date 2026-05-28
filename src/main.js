@@ -291,6 +291,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     );
   }
 
+  function normalizePrice(value) {
+    const normalized = String(value || "")
+      .replace(/[^\d,.-]/g, "")
+      .replace(/\./g, "")
+      .replace(",", ".");
+
+    const number = Number(normalized);
+
+    return Number.isNaN(number) ? null : number;
+  }
+
   async function submitBooking(event) {
     event.preventDefault();
 
@@ -324,6 +335,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       houseNumber: getInputValue("#hausnummer"),
       zip: getInputValue("#plz"),
       city: getInputValue("#Stadt"),
+
+      bundesland: getInputValue("#Bundesland"),
+      kanton: getInputValue("#Kanton"),
 
       companyBooking: getCompanyBookingValue(),
       companyName: getInputValue("#Firmenname"),
