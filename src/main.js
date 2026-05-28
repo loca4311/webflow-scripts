@@ -404,7 +404,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   function validatePayment() {
     const wrapper = form.querySelector(".payment-radio_component");
     const cards = form.querySelectorAll(".payment-radio_field");
-    const checkedPayment = form.querySelector('input[name="payment"]:checked');
+    const checkedPayment =
+      form.querySelector('input[name="payment"]:checked') ||
+      form.querySelector(".payment-radio_field.active input[name='payment']");
 
     const isInvalid = !checkedPayment;
 
@@ -439,6 +441,35 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     return !isInvalid;
   }
+
+  function clearPaymentError() {
+    const wrapper = form.querySelector(".payment-radio_component");
+
+    wrapper?.classList.remove("is-error");
+    wrapper?.querySelector(".form-error-message")?.remove();
+
+    form.querySelectorAll(".payment-radio_field").forEach((card) => {
+      card.classList.remove("is-error");
+    });
+  }
+
+  form.querySelectorAll(".payment-radio_field").forEach((card) => {
+    card.addEventListener("click", () => {
+      const input = card.querySelector('input[type="radio"]');
+
+      if (input) {
+        input.checked = true;
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+
+      clearPaymentError();
+
+      form.querySelectorAll(".payment-radio_field").forEach((item) => {
+        const itemInput = item.querySelector('input[type="radio"]');
+        item.classList.toggle("active", !!itemInput?.checked);
+      });
+    });
+  });
 
   function clearErrorsOnInput() {
     form.querySelectorAll("input, select, textarea").forEach((field) => {
