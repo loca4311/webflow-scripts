@@ -340,8 +340,131 @@ document.addEventListener("DOMContentLoaded", async () => {
     return Number.isNaN(number) ? null : number;
   }
 
+  function isFieldVisible(field) {
+    return !!(
+      field.offsetWidth ||
+      field.offsetHeight ||
+      field.getClientRects().length
+    );
+  }
+
+  function setFieldError(field, hasError) {
+    if (!field) return;
+
+    if (field.matches("input, select, textarea")) {
+      field.classList.toggle("is-error", hasError);
+    } else {
+      field.classList.toggle("is-error", hasError);
+    }
+  }
+
+  function validateRequiredField(selector) {
+    const field = form.querySelector(selector);
+
+    if (!field || field.disabled || !isFieldVisible(field)) {
+      return true;
+    }
+
+    const isInvalid = !field.value.trim();
+
+    setFieldError(field, isInvalid);
+
+    return !isInvalid;
+  }
+
+  function validatePayment() {
+    const paymentWrapper = form.querySelector(".payment-radio_component");
+    const checkedPayment = form.querySelector('input[name="payment"]:checked');
+
+    const isInvalid = !checkedPayment;
+
+    setFieldError(paymentWrapper, isInvalid);
+
+    return !isInvalid;
+  }
+
+  function validateTerms() {
+    const checkbox = form.querySelector("#checkbox-2");
+    const wrapper = checkbox?.closest(".form_checkbox");
+
+    const isInvalid = !checkbox?.checked;
+
+    setFieldError(wrapper, isInvalid);
+
+    return !isInvalid;
+  }
+
+  function clearErrorsOnInput() {
+    form.querySelectorAll("input, select, textarea").forEach((field) => {
+      field.addEventListener("input", () => {
+        field.classList.remove("is-error");
+      });
+
+      field.addEventListener("change", () => {
+        field.classList.remove("is-error");
+
+        const paymentWrapper = form.querySelector(".payment-radio_component");
+        paymentWrapper?.classList.remove("is-error");
+
+        const termsWrapper = form
+          .querySelector("#checkbox-2")
+          ?.closest(".form_checkbox");
+        termsWrapper?.classList.remove("is-error");
+      });
+    });
+  }
+
+  function validateBookingForm() {
+    const country = getInputValue('select[name="Land"]');
+    const isCompanyBooking = getCompanyBookingValue();
+
+    const checks = [
+      validateRequiredField("#Email"),
+      validateRequiredField("#Vorname"),
+      validateRequiredField("#Nachname"),
+      validateRequiredField('select[name="Land"]'),
+      validateRequiredField("#strasse"),
+      validateRequiredField("#hausnummer"),
+      validateRequiredField("#plz"),
+      validateRequiredField("#Stadt"),
+      validatePayment(),
+      validateTerms(),
+    ];
+
+    if (country === "AT") {
+      checks.push(validateRequiredField("#Bundesland"));
+    }
+
+    if (country === "CH") {
+      checks.push(validateRequiredField("#Kanton"));
+    }
+
+    if (isCompanyBooking) {
+      checks.push(validateRequiredField("#Firmenname"));
+      checks.push(validateRequiredField("#USt-ID"));
+    }
+
+    const isValid = checks.every(Boolean);
+
+    if (!isValid) {
+      const firstError = form.querySelector(
+        ".is-error input, .is-error select, .is-error textarea, input.is-error, select.is-error, textarea.is-error",
+      );
+
+      firstError?.focus();
+    }
+
+    return isValid;
+  }
+
+  clearErrorsOnInput();
+
   async function submitBooking(event) {
     event.preventDefault();
+
+    if (!validateBookingForm()) {
+      return;
+    }
 
     const paymentMethod = getSelectedPaymentMethod();
 
