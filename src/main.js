@@ -408,15 +408,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const isInvalid = !checkedPayment;
 
+    wrapper?.classList.toggle("is-error", isInvalid);
+
     cards.forEach((card) => {
       card.classList.toggle("is-error", isInvalid);
     });
 
+    wrapper?.querySelector(".form-error-message")?.remove();
+
     if (isInvalid) {
       showError(wrapper, "Bitte wähle eine Zahlungsweise aus.");
-    } else {
-      clearError(wrapper);
-      cards.forEach((card) => card.classList.remove("is-error"));
     }
 
     return !isInvalid;
