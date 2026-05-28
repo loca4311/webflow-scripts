@@ -524,8 +524,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function submitBooking(event) {
     event.preventDefault();
-    event.stopPropagation();
-    event.stopImmediatePropagation();
 
     const successEl = form.parentElement?.querySelector(".w-form-done");
     const failEl = form.parentElement?.querySelector(".w-form-fail");
@@ -635,5 +633,27 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   emailInput?.addEventListener("blur", checkEmailInMemberstack);
 
-  form.addEventListener("submit", submitBooking, true);
+  const submitButton = form.querySelector('input[type="submit"]');
+
+  submitButton?.addEventListener(
+    "click",
+    (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+
+      submitBooking(event);
+    },
+    true,
+  );
+
+  form.addEventListener(
+    "submit",
+    (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+    },
+    true,
+  );
 });
