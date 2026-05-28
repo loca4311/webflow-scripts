@@ -299,10 +299,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   const companyToggle = form.querySelector(".toggle_wrapper");
   const companyContent = form.querySelector(".company-toggle_content");
 
-  function updateCompanyToggle() {
-    const isActive = companyToggle?.classList.contains("active") || false;
+  function updateCompanyToggle(toggle) {
+    const companyBlock = toggle.closest(".company-toggle");
+    const companyContent = companyBlock?.querySelector(
+      ".company-toggle_content",
+    );
 
     if (!companyContent) return;
+
+    const isActive = toggle.classList.contains("active");
 
     companyContent.style.display = isActive ? "block" : "none";
 
@@ -313,19 +318,17 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
   }
 
-  form.addEventListener("click", (event) => {
-    const toggle = event.target.closest(".toggle_wrapper");
-    if (!toggle) return;
+  form.querySelectorAll(".toggle_wrapper").forEach((toggle) => {
+    updateCompanyToggle(toggle);
 
-    console.log("toggle clicked");
+    toggle.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
 
-    event.preventDefault();
-
-    toggle.classList.toggle("active");
-    updateCompanyToggle();
+      toggle.classList.toggle("active");
+      updateCompanyToggle(toggle);
+    });
   });
-
-  updateCompanyToggle();
 
   function normalizePrice(value) {
     const normalized = String(value || "")
