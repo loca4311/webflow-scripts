@@ -302,19 +302,26 @@ document.addEventListener("DOMContentLoaded", async () => {
   function updateCompanyToggle() {
     const isActive = companyToggle?.classList.contains("active") || false;
 
-    if (companyContent) {
-      companyContent.style.display = isActive ? "" : "none";
+    if (!companyContent) return;
 
-      companyContent
-        .querySelectorAll("input, select, textarea")
-        .forEach((field) => {
-          field.disabled = !isActive;
-        });
-    }
+    companyContent.style.display = isActive ? "block" : "none";
+
+    companyContent
+      .querySelectorAll("input, select, textarea")
+      .forEach((field) => {
+        field.disabled = !isActive;
+      });
   }
 
-  companyToggle?.addEventListener("click", () => {
-    companyToggle.classList.toggle("active");
+  form.addEventListener("click", (event) => {
+    const toggle = event.target.closest(".toggle_wrapper");
+    if (!toggle) return;
+
+    console.log("toggle clicked");
+
+    event.preventDefault();
+
+    toggle.classList.toggle("active");
     updateCompanyToggle();
   });
 
