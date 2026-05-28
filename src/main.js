@@ -321,12 +321,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   form.querySelectorAll(".toggle_wrapper").forEach((toggle) => {
     updateCompanyToggle(toggle);
 
-    toggle.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-
-      toggle.classList.toggle("active");
-      updateCompanyToggle(toggle);
+    toggle.addEventListener("click", () => {
+      setTimeout(() => {
+        toggle.classList.toggle("active");
+        updateCompanyToggle(toggle);
+      }, 0);
     });
   });
 
