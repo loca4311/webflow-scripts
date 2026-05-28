@@ -133,7 +133,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function shouldUseMemberPrice() {
-    return !!currentMember || emailBelongsToMember;
+    const formEmail = emailInput?.value?.trim().toLowerCase() || "";
+    const memberEmail = currentMember?.auth?.email?.trim().toLowerCase() || "";
+
+    if (currentMember && formEmail && formEmail === memberEmail) {
+      return true;
+    }
+
+    return emailBelongsToMember;
   }
 
   function prefillMemberData() {
@@ -233,8 +240,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   async function checkEmailInMemberstack() {
-    if (currentMember) return;
-
     const email = emailInput?.value?.trim().toLowerCase();
 
     if (!email || !email.includes("@")) {
@@ -291,6 +296,30 @@ document.addEventListener("DOMContentLoaded", async () => {
     );
   }
 
+  const companyToggle = form.querySelector(".toggle_wrapper");
+  const companyContent = form.querySelector(".company-toggle_content");
+
+  function updateCompanyToggle() {
+    const isActive = companyToggle?.classList.contains("active") || false;
+
+    if (companyContent) {
+      companyContent.style.display = isActive ? "" : "none";
+
+      companyContent
+        .querySelectorAll("input, select, textarea")
+        .forEach((field) => {
+          field.disabled = !isActive;
+        });
+    }
+  }
+
+  companyToggle?.addEventListener("click", () => {
+    companyToggle.classList.toggle("active");
+    updateCompanyToggle();
+  });
+
+  updateCompanyToggle();
+
   function normalizePrice(value) {
     const normalized = String(value || "")
       .replace(/[^\d,.-]/g, "")
@@ -346,7 +375,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       question: getInputValue("#frage"),
 
       paymentMethod,
-      price: getInputValue("[data-hidden-selected-price]"),
+      price: normalizePrice(getInputValue("[data-hidden-selected-price]")),
       priceType: getInputValue("[data-hidden-price-type]"),
 
       memberId: currentMember?.id || "",
