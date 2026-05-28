@@ -348,17 +348,40 @@ document.addEventListener("DOMContentLoaded", async () => {
     );
   }
 
-  function setFieldError(field, hasError) {
-    if (!field) return;
-
-    if (field.matches("input, select, textarea")) {
-      field.classList.toggle("is-error", hasError);
-    } else {
-      field.classList.toggle("is-error", hasError);
-    }
+  function getErrorContainer(field) {
+    return field.closest(
+      ".form_field-wrapper, .select_component, .payment-radio_component, .form_checkbox",
+    );
   }
 
-  function validateRequiredField(selector) {
+  function showError(fieldOrWrapper, message) {
+    if (!fieldOrWrapper) return;
+
+    const container = getErrorContainer(fieldOrWrapper) || fieldOrWrapper;
+
+    container.querySelector(".form-error-message")?.remove();
+
+    const error = document.createElement("div");
+    error.className = "form-error-message";
+    error.textContent = message;
+
+    container.appendChild(error);
+  }
+
+  function clearError(fieldOrWrapper) {
+    if (!fieldOrWrapper) return;
+
+    const container = getErrorContainer(fieldOrWrapper) || fieldOrWrapper;
+
+    fieldOrWrapper.classList.remove("is-error");
+    container.classList.remove("is-error");
+    container.querySelector(".form-error-message")?.remove();
+  }
+
+  function validateRequiredField(
+    selector,
+    message = "Bitte fülle dieses Feld aus.",
+  ) {
     const field = form.querySelector(selector);
 
     if (!field || field.disabled || !isFieldVisible(field)) {
@@ -367,18 +390,34 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const isInvalid = !field.value.trim();
 
-    setFieldError(field, isInvalid);
+    field.classList.toggle("is-error", isInvalid);
+
+    if (isInvalid) {
+      showError(field, message);
+    } else {
+      clearError(field);
+    }
 
     return !isInvalid;
   }
 
   function validatePayment() {
-    const paymentWrapper = form.querySelector(".payment-radio_component");
+    const wrapper = form.querySelector(".payment-radio_component");
+    const cards = form.querySelectorAll(".payment-radio_field");
     const checkedPayment = form.querySelector('input[name="payment"]:checked');
 
     const isInvalid = !checkedPayment;
 
-    setFieldError(paymentWrapper, isInvalid);
+    cards.forEach((card) => {
+      card.classList.toggle("is-error", isInvalid);
+    });
+
+    if (isInvalid) {
+      showError(wrapper, "Bitte wähle eine Zahlungsweise aus.");
+    } else {
+      clearError(wrapper);
+      cards.forEach((card) => card.classList.remove("is-error"));
+    }
 
     return !isInvalid;
   }
@@ -389,7 +428,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const isInvalid = !checkbox?.checked;
 
-    setFieldError(wrapper, isInvalid);
+    wrapper?.classList.toggle("is-error", isInvalid);
+
+    if (isInvalid) {
+      showError(wrapper, "Bitte stimme den Bedingungen zu.");
+    } else {
+      clearError(wrapper);
+    }
 
     return !isInvalid;
   }
@@ -397,19 +442,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   function clearErrorsOnInput() {
     form.querySelectorAll("input, select, textarea").forEach((field) => {
       field.addEventListener("input", () => {
-        field.classList.remove("is-error");
+        clearError(field);
       });
 
       field.addEventListener("change", () => {
-        field.classList.remove("is-error");
+        clearError(field);
 
-        const paymentWrapper = form.querySelector(".payment-radio_component");
-        paymentWrapper?.classList.remove("is-error");
+        if (field.name === "payment") {
+          validatePayment();
+        }
 
-        const termsWrapper = form
-          .querySelector("#checkbox-2")
-          ?.closest(".form_checkbox");
-        termsWrapper?.classList.remove("is-error");
+        if (field.id === "checkbox-2") {
+          validateTerms();
+        }
       });
     });
   }
@@ -419,39 +464,57 @@ document.addEventListener("DOMContentLoaded", async () => {
     const isCompanyBooking = getCompanyBookingValue();
 
     const checks = [
-      validateRequiredField("#Email"),
-      validateRequiredField("#Vorname"),
-      validateRequiredField("#Nachname"),
-      validateRequiredField('select[name="Land"]'),
-      validateRequiredField("#strasse"),
-      validateRequiredField("#hausnummer"),
-      validateRequiredField("#plz"),
-      validateRequiredField("#Stadt"),
+      validateRequiredField("#Email", "Bitte gib deine E-Mail-Adresse ein."),
+      validateRequiredField("#Vorname", "Bitte gib deinen Vornamen ein."),
+      validateRequiredField("#Nachname", "Bitte gib deinen Nachnamen ein."),
+      validateRequiredField(
+        'select[name="Land"]',
+        "Bitte wähle dein Land aus.",
+      ),
+      validateRequiredField("#strasse", "Bitte gib deine Straße ein."),
+      validateRequiredField("#hausnummer", "Bitte gib deine Hausnummer ein."),
+      validateRequiredField("#plz", "Bitte gib deine PLZ ein."),
+      validateRequiredField("#Stadt", "Bitte gib deine Stadt ein."),
       validatePayment(),
       validateTerms(),
     ];
 
     if (country === "AT") {
-      checks.push(validateRequiredField("#Bundesland"));
+      checks.push(
+        validateRequiredField(
+          "#Bundesland",
+          "Bitte wähle dein Bundesland aus.",
+        ),
+      );
     }
 
     if (country === "CH") {
-      checks.push(validateRequiredField("#Kanton"));
+      checks.push(
+        validateRequiredField("#Kanton", "Bitte gib deinen Kanton ein."),
+      );
     }
 
     if (isCompanyBooking) {
-      checks.push(validateRequiredField("#Firmenname"));
-      checks.push(validateRequiredField("#USt-ID"));
+      checks.push(
+        validateRequiredField("#Firmenname", "Bitte gib den Firmennamen ein."),
+      );
     }
 
     const isValid = checks.every(Boolean);
 
     if (!isValid) {
       const firstError = form.querySelector(
-        ".is-error input, .is-error select, .is-error textarea, input.is-error, select.is-error, textarea.is-error",
+        "input.is-error, select.is-error, textarea.is-error, .payment-radio_field.is-error, .form_checkbox.is-error",
       );
 
-      firstError?.focus();
+      firstError?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+
+      if (firstError.matches("input, select, textarea")) {
+        firstError.focus();
+      }
     }
 
     return isValid;
@@ -461,6 +524,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function submitBooking(event) {
     event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
+    const successEl = form.parentElement?.querySelector(".w-form-done");
+    const failEl = form.parentElement?.querySelector(".w-form-fail");
+
+    if (successEl) successEl.style.display = "none";
+    if (failEl) failEl.style.display = "none";
 
     if (!validateBookingForm()) {
       return;
