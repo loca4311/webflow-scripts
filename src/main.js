@@ -7,6 +7,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const CHECK_MEMBER_EMAIL_ENDPOINT =
     "https://tinguvlwumswhznygirl.supabase.co/functions/v1/check-member-email";
 
+  const CREATE_BOOKING_ENDPOINT =
+    "https://tinguvlwumswhznygirl.supabase.co/functions/v1/create-booking";
+
   const emailInput = form.querySelector("#Email");
 
   let currentMember = null;
@@ -271,6 +274,112 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  function getInputValue(selector) {
+    return form.querySelector(selector)?.value?.trim() || "";
+  }
+
+  function getSelectedPaymentMethod() {
+    return (
+      form.querySelector('input[name="payment"]:checked')?.value || "rechnung"
+    );
+  }
+
+  function getCompanyBookingValue() {
+    return (
+      form.querySelector(".toggle_wrapper")?.classList.contains("active") ||
+      false
+    );
+  }
+
+  async function submitBooking(event) {
+    event.preventDefault();
+
+    const paymentMethod = getSelectedPaymentMethod();
+
+    if (paymentMethod !== "rechnung") {
+      alert("PayPal kommt im nächsten Schritt.");
+      return;
+    }
+
+    const submitButton = form.querySelector('input[type="submit"]');
+    const originalSubmitText = submitButton?.value;
+
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.value = "Wird gesendet...";
+    }
+
+    const payload = {
+      courseName: getInputValue("[data-hidden-course-name]"),
+      startDate: getInputValue("[data-hidden-start-date]"),
+      endDate: getInputValue("[data-hidden-end-date]"),
+      location: getInputValue("[data-hidden-location]"),
+      planId: getInputValue("[data-hidden-plan-id]"),
+
+      email: getInputValue("#Email"),
+      firstName: getInputValue("#Vorname"),
+      lastName: getInputValue("#Nachname"),
+      country: getInputValue('select[name="Land"]'),
+      street: getInputValue("#strasse"),
+      houseNumber: getInputValue("#hausnummer"),
+      zip: getInputValue("#plz"),
+      city: getInputValue("#Stadt"),
+
+      companyBooking: getCompanyBookingValue(),
+      companyName: getInputValue("#Firmenname"),
+      vatId: getInputValue("#USt-ID"),
+
+      question: getInputValue("#frage"),
+
+      paymentMethod,
+      price: getInputValue("[data-hidden-selected-price]"),
+      priceType: getInputValue("[data-hidden-price-type]"),
+
+      memberId: currentMember?.id || "",
+      memberExists: !!currentMember || emailBelongsToMember,
+    };
+
+    try {
+      const response = await fetch(CREATE_BOOKING_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Booking konnte nicht erstellt werden.");
+      }
+
+      console.log("[Booking Form] Booking created:", data.booking);
+
+      const successEl = form.parentElement?.querySelector(".w-form-done");
+      const failEl = form.parentElement?.querySelector(".w-form-fail");
+
+      form.style.display = "none";
+      if (failEl) failEl.style.display = "none";
+      if (successEl) successEl.style.display = "block";
+    } catch (error) {
+      console.error("[Booking Form] Submit failed:", error);
+
+      const failEl = form.parentElement?.querySelector(".w-form-fail");
+
+      if (failEl) {
+        failEl.style.display = "block";
+      } else {
+        alert("Es ist ein Fehler aufgetreten. Bitte versuche es erneut.");
+      }
+
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.value = originalSubmitText || "Jetzt verbindlich buchen";
+      }
+    }
+  }
+
   document.addEventListener("click", (event) => {
     const button = event.target.closest("[data-open-course-form]");
     if (!button) return;
@@ -279,4 +388,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   emailInput?.addEventListener("blur", checkEmailInMemberstack);
+
+  form.addEventListener("submit", submitBooking);
 });
