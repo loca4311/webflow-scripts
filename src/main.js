@@ -427,16 +427,21 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function validateTerms() {
     const checkbox = form.querySelector("#checkbox-2");
-    const wrapper = checkbox?.closest(".form_checkbox");
+
+    const checkboxLabel = checkbox?.closest(".form_checkbox");
+
+    const wrapper = checkbox?.closest(".form_checkbox-wrapper");
 
     const isInvalid = !checkbox?.checked;
 
+    checkboxLabel?.classList.toggle("is-error", isInvalid);
+
     wrapper?.classList.toggle("is-error", isInvalid);
 
-    if (isInvalid) {
+    wrapper?.querySelector(".form-error-message")?.remove();
+
+    if (isInvalid && wrapper) {
       showError(wrapper, "Bitte stimme den Bedingungen zu.");
-    } else {
-      clearError(wrapper);
     }
 
     return !isInvalid;
