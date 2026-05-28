@@ -645,6 +645,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             bookingReference: data.booking.booking_reference,
             courseName: data.booking.course_name,
             price: data.booking.price,
+            courseUrl: window.location.href.split("?")[0],
           }),
         });
 
