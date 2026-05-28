@@ -10,6 +10,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const CREATE_BOOKING_ENDPOINT =
     "https://tinguvlwumswhznygirl.supabase.co/functions/v1/create-booking";
 
+  const CREATE_PAYPAL_ORDER_ENDPOINT =
+    "https://tinguvlwumswhznygirl.supabase.co/functions/v1/create-paypal-order";
+
   const emailInput = form.querySelector("#Email");
 
   let currentMember = null;
@@ -574,11 +577,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const paymentMethod = getSelectedPaymentMethod();
 
-    if (paymentMethod !== "rechnung") {
-      alert("PayPal kommt im nächsten Schritt.");
-      return;
-    }
-
     const submitButton = form.querySelector('input[type="submit"]');
     const originalSubmitText = submitButton?.value;
 
@@ -636,6 +634,35 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
 
       console.log("[Booking Form] Booking created:", data.booking);
+
+      if (paymentMethod === "paypal") {
+        const paypalResponse = await fetch(CREATE_PAYPAL_ORDER_ENDPOINT, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            bookingReference: data.booking.booking_reference,
+            courseName: data.booking.course_name,
+            price: data.booking.price,
+          }),
+        });
+
+        const paypalData = await paypalResponse.json();
+
+        if (
+          !paypalResponse.ok ||
+          !paypalData.success ||
+          !paypalData.approveUrl
+        ) {
+          throw new Error(
+            paypalData.error || "PayPal konnte nicht gestartet werden.",
+          );
+        }
+
+        window.location.href = paypalData.approveUrl;
+        return;
+      }
 
       const referenceEl = form.parentElement?.querySelector(
         "[data-booking-reference]",
