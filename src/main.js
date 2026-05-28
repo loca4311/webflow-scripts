@@ -635,5 +635,5 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   emailInput?.addEventListener("blur", checkEmailInMemberstack);
 
-  form.addEventListener("submit", submitBooking);
+  form.addEventListener("submit", submitBooking, true);
 });
