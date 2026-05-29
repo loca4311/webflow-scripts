@@ -13,6 +13,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const CREATE_PAYPAL_ORDER_ENDPOINT =
     "https://tinguvlwumswhznygirl.supabase.co/functions/v1/create-paypal-order";
 
+  const CHECK_COURSE_ACCESS_ENDPOINT =
+    "https://tinguvlwumswhznygirl.supabase.co/functions/v1/check-course-access";
+
   const emailInput = form.querySelector("#Email");
 
   let currentMember = null;
@@ -562,6 +565,27 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   clearErrorsOnInput();
 
+  async function checkCourseAccess(email, planId) {
+    const response = await fetch(CHECK_COURSE_ACCESS_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        planId,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Course access check failed");
+    }
+
+    return data;
+  }
+
   async function submitBooking(event) {
     event.preventDefault();
 
@@ -619,6 +643,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
 
     try {
+      const accessCheck = await checkCourseAccess(
+        payload.email,
+        payload.planId,
+      );
+
+      if (accessCheck.hasAccess) {
+        throw new Error("Du hast diesen Kurs bereits gekauft.");
+      }
+
       const response = await fetch(CREATE_BOOKING_ENDPOINT, {
         method: "POST",
         headers: {
@@ -686,6 +719,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       if (failEl) {
         failEl.style.display = "block";
+
+        const text = failEl.querySelector("div") || failEl;
+
+        text.textContent = error.message || "Es ist ein Fehler aufgetreten.";
       } else {
         alert("Es ist ein Fehler aufgetreten. Bitte versuche es erneut.");
       }
