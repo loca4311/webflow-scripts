@@ -604,6 +604,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     const submitButton = form.querySelector('input[type="submit"]');
     const originalSubmitText = submitButton?.value;
 
+    if (submitButton?.dataset.loading === "true") {
+      return;
+    }
+
+    if (submitButton) {
+      submitButton.dataset.loading = "true";
+    }
+
     if (submitButton) {
       submitButton.disabled = true;
       submitButton.value = "Wird gesendet...";
@@ -728,6 +736,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
 
       if (submitButton) {
+        submitButton.dataset.loading = "false";
         submitButton.disabled = false;
         submitButton.value = originalSubmitText || "Jetzt verbindlich buchen";
       }
