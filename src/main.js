@@ -161,8 +161,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (getMemberField("country"))
       setValue('select[name="Land"]', getMemberField("country"));
-    if (getMemberField("address"))
-      setValue("#strasse", getMemberField("address"));
+    if (getMemberField("address")) {
+      const address = splitAddress(getMemberField("address"));
+
+      setValue("#strasse", address.street);
+      setValue("#hausnummer", address.houseNumber);
+    }
     if (getMemberField("zip")) setValue("#plz", getMemberField("zip"));
     if (getMemberField("city")) setValue("#Stadt", getMemberField("city"));
   }
@@ -567,6 +571,24 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   clearErrorsOnInput();
+
+  function splitAddress(address) {
+    const value = String(address || "").trim();
+
+    const match = value.match(/^(.+?)\s+(\d+\s?[a-zA-Z]?)$/);
+
+    if (!match) {
+      return {
+        street: value,
+        houseNumber: "",
+      };
+    }
+
+    return {
+      street: match[1].trim(),
+      houseNumber: match[2].trim(),
+    };
+  }
 
   async function checkCourseAccess(email, planId) {
     const response = await fetch(CHECK_COURSE_ACCESS_ENDPOINT, {
