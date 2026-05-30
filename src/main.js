@@ -16,6 +16,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const CHECK_COURSE_ACCESS_ENDPOINT =
     "https://tinguvlwumswhznygirl.supabase.co/functions/v1/check-course-access";
 
+  const ZAPIER_RECHNUNG_WEBHOOK =
+    "https://hooks.zapier.com/hooks/catch/16870785/4bhs9hb/";
+
   const emailInput = form.querySelector("#Email");
 
   let currentMember = null;
@@ -586,6 +589,34 @@ document.addEventListener("DOMContentLoaded", async () => {
     return data;
   }
 
+  async function sendRechnungWebhook(booking) {
+    const response = await fetch(ZAPIER_RECHNUNG_WEBHOOK, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        bookingReference: booking.booking_reference,
+
+        courseName: booking.course_name,
+
+        email: booking.email,
+
+        firstName: booking.first_name,
+
+        lastName: booking.last_name,
+
+        price: booking.price,
+
+        paymentMethod: booking.payment_method,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Zapier webhook failed");
+    }
+  }
+
   async function submitBooking(event) {
     event.preventDefault();
 
@@ -675,6 +706,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
 
       console.log("[Booking Form] Booking created:", data.booking);
+
+      if (paymentMethod === "rechnung") {
+        await sendRechnungWebhook(data.booking);
+      }
 
       if (paymentMethod === "paypal") {
         const paypalResponse = await fetch(CREATE_PAYPAL_ORDER_ENDPOINT, {
