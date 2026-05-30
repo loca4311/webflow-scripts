@@ -529,7 +529,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       validateTerms(),
     ];
 
-    if (country === "AT") {
+    if (country === "Österreich") {
       checks.push(
         validateRequiredField(
           "#Bundesland",
@@ -538,7 +538,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       );
     }
 
-    if (country === "CH") {
+    if (country === "Schweiz") {
       checks.push(
         validateRequiredField("#Kanton", "Bitte gib deinen Kanton ein."),
       );
