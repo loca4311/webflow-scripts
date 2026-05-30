@@ -592,9 +592,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function sendRechnungWebhook(booking) {
     const response = await fetch(ZAPIER_RECHNUNG_WEBHOOK, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({
         bookingReference: booking.booking_reference,
 
