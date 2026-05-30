@@ -658,6 +658,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       country: getInputValue('select[name="Land"]'),
       street: getInputValue("#strasse"),
       houseNumber: getInputValue("#hausnummer"),
+      fullAddress:
+        `${getInputValue("#strasse")} ${getInputValue("#hausnummer")}`.trim(),
       zip: getInputValue("#plz"),
       city: getInputValue("#Stadt"),
 
