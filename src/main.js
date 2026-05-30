@@ -621,16 +621,39 @@ document.addEventListener("DOMContentLoaded", async () => {
         bookingReference: booking.booking_reference,
 
         courseName: booking.course_name,
+        startDate: booking.start_date,
+        endDate: booking.end_date,
+        location: booking.location,
+        planId: booking.memberstack_plan_id,
 
         email: booking.email,
-
         firstName: booking.first_name,
-
         lastName: booking.last_name,
 
-        price: booking.price,
+        country: booking.country,
+        street: booking.street,
+        houseNumber: booking.house_number,
+        fullAddress: booking.full_address,
+        zip: booking.zip,
+        city: booking.city,
+        bundesland: booking.bundesland,
+        kanton: booking.kanton,
+
+        companyBooking: booking.company_booking,
+        companyName: booking.company_name,
+        vatId: booking.vat_id,
+
+        question: booking.question,
 
         paymentMethod: booking.payment_method,
+        paymentStatus: booking.payment_status,
+        bookingStatus: booking.booking_status,
+
+        price: booking.price,
+        priceType: booking.price_type,
+
+        memberExists: booking.member_exists,
+        memberId: booking.member_id,
       }),
     });
 
