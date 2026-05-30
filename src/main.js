@@ -17,7 +17,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     "https://tinguvlwumswhznygirl.supabase.co/functions/v1/check-course-access";
 
   const ZAPIER_RECHNUNG_WEBHOOK =
-    "https://hooks.zapier.com/hooks/catch/16870785/4bhs9hb/";
+    "https://hooks.zapier.com/hooks/catch/16870785/4bhs9hb";
 
   const emailInput = form.querySelector("#Email");
 
