@@ -16,8 +16,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   const CHECK_COURSE_ACCESS_ENDPOINT =
     "https://tinguvlwumswhznygirl.supabase.co/functions/v1/check-course-access";
 
-  const ZAPIER_RECHNUNG_WEBHOOK =
-    "https://hooks.zapier.com/hooks/catch/16870785/4bhs9hb";
+  const SEND_RECHNUNG_WEBHOOK_ENDPOINT =
+    "https://tinguvlwumswhznygirl.supabase.co/functions/v1/send-rechnung-webhook";
 
   const emailInput = form.querySelector("#Email");
 
@@ -612,8 +612,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   async function sendRechnungWebhook(booking) {
-    const response = await fetch(ZAPIER_RECHNUNG_WEBHOOK, {
+    const response = await fetch(SEND_RECHNUNG_WEBHOOK_ENDPOINT, {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
         bookingReference: booking.booking_reference,
 
