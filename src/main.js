@@ -223,6 +223,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       regularPrice: button.getAttribute("data-regular-price") || "",
       memberPrice: button.getAttribute("data-member-price") || "",
       planId: button.getAttribute("data-plan-id") || "",
+      courseSlug: button.getAttribute("data-course-slug") || "",
     };
 
     const dateRange = formatDateRange(
@@ -699,6 +700,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       endDate: getInputValue("[data-hidden-end-date]"),
       location: getInputValue("[data-hidden-location]"),
       planId: getInputValue("[data-hidden-plan-id]"),
+      courseSlug: currentCourseData?.courseSlug || "",
 
       email: getInputValue("#Email"),
       firstName: getInputValue("#Vorname"),
