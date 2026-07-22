@@ -212,7 +212,68 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
+  function resetBookingFormState() {
+    const formWrapper = form.parentElement;
+    const successEl = formWrapper?.querySelector(".w-form-done");
+    const failEl = formWrapper?.querySelector(".w-form-fail");
+    const bookingReferenceEl = formWrapper?.querySelector(
+      "[data-booking-reference]",
+    );
+    const submitButton = form.querySelector('input[type="submit"]');
+
+    // Show the booking form again
+    form.style.display = "";
+
+    // Hide the previous result
+    if (successEl) successEl.style.display = "none";
+    if (failEl) failEl.style.display = "none";
+
+    // Remove the previous booking number
+    if (bookingReferenceEl) {
+      bookingReferenceEl.textContent = "";
+    }
+
+    // Unlock the submit button
+    if (submitButton) {
+      submitButton.dataset.loading = "false";
+      submitButton.disabled = false;
+    }
+
+    // Remove previous validation errors
+    form.querySelectorAll(".form-error-message").forEach((message) => {
+      message.remove();
+    });
+
+    form.querySelectorAll(".is-error").forEach((element) => {
+      element.classList.remove("is-error");
+    });
+
+    // Reset the selected payment method
+    form.querySelectorAll('input[name="payment"]').forEach((input) => {
+      input.checked = false;
+
+      input
+        .closest(".payment-radio_field")
+        ?.classList.remove("active", "is-error");
+
+      input.previousElementSibling?.classList.remove("w--redirected-checked");
+    });
+
+    // Reset the terms checkbox
+    const termsCheckbox = form.querySelector("#checkbox-2");
+
+    if (termsCheckbox) {
+      termsCheckbox.checked = false;
+
+      termsCheckbox.previousElementSibling?.classList.remove(
+        "w--redirected-checked",
+      );
+    }
+  }
+
   function updateBookingForm(button) {
+    resetBookingFormState();
+
     currentCourseData = {
       courseName: button.getAttribute("data-course-name") || "",
       startDate: button.getAttribute("data-start-date") || "",
