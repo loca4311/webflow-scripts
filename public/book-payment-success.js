@@ -1,12 +1,14 @@
 document.addEventListener("DOMContentLoaded", async () => {
   const CAPTURE_ENDPOINT =
     "https://tinguvlwumswhznygirl.supabase.co/functions/v1/capture-book-paypal-order";
+
   const GET_ORDER_ENDPOINT =
     "https://tinguvlwumswhznygirl.supabase.co/functions/v1/get-book-order-by-reference";
 
   const params = new URLSearchParams(window.location.search);
   const paypalOrderId = params.get("token");
   const orderReference = params.get("order");
+
   const isPayPalReturn =
     params.get("payment") === "success" &&
     params.get("type") === "book" &&
@@ -14,7 +16,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function setText(selector, value) {
     document.querySelectorAll(selector).forEach((element) => {
-      element.textContent = value || "";
+      element.textContent = value ?? "";
     });
   }
 
@@ -27,9 +29,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function postJson(url, body) {
     const response = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify(body),
     });
+
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok || !data.success || !data.order) {
@@ -48,35 +53,39 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (isDigital && hasAccess) {
       return isPaid
-        ? "Zahlung bestÃ¤tigt Â· Zugang freigeschaltet"
-        : "Bestellung aufgenommen Â· Zugang freigeschaltet";
+        ? "Zahlung best\u00e4tigt \u00b7 Zugang freigeschaltet"
+        : "Bestellung aufgenommen \u00b7 Zugang freigeschaltet";
     }
 
     if (isDigital) {
-      return isPaid ? "Zahlung bestÃ¤tigt" : "Bestellung aufgenommen";
+      return isPaid ? "Zahlung best\u00e4tigt" : "Bestellung aufgenommen";
     }
 
     return isPaid
-      ? "Zahlung bestÃ¤tigt Â· Versand wird vorbereitet"
-      : "Bestellung aufgenommen Â· Rechnung offen";
+      ? "Zahlung best\u00e4tigt \u00b7 Versand wird vorbereitet"
+      : "Bestellung aufgenommen \u00b7 Rechnung offen";
   }
 
   function renderOrder(order) {
     const isDigital = order.product_type === "digital";
     const isAudio = order.book_format === "audio";
+    const hasAccess = order.access_status === "granted";
 
-    // data-member-name remains supported for the currently published Webflow page.
     setText("[data-book-first-name], [data-member-name]", order.first_name);
+
     setText("[data-book-title]", order.book_title);
     setText("[data-book-format-label]", order.format_label);
     setText("[data-book-email]", order.email);
     setText("[data-book-status]", statusText(order));
 
-    if (isDigital) {
-      setText("[data-book-next-title]", "Zu deinen BÃ¼chern");
+    if (isDigital && hasAccess) {
+      setText("[data-book-next-title]", "Zu deinen B\u00fcchern");
+
       setText(
         "[data-book-next-text]",
-        `Dein ${isAudio ? "HÃ¶rbuch" : "E-Book"} findest du in deinem persÃ¶nlichen Bereich.`,
+        `Dein ${
+          isAudio ? "H\u00f6rbuch" : "E-Book"
+        } findest du in deinem pers\u00f6nlichen Bereich.`,
       );
 
       document.querySelectorAll("[data-book-next-link]").forEach((link) => {
@@ -84,14 +93,25 @@ document.addEventListener("DOMContentLoaded", async () => {
         link.target = "_self";
         link.style.display = "inline-flex";
       });
+    } else if (isDigital) {
+      setText("[data-book-next-title]", "Bestellung wird verarbeitet");
+
+      setText(
+        "[data-book-next-text]",
+        "Dein digitaler Zugang wird gerade vorbereitet. Bitte pr\u00fcfe dein E-Mail-Postfach.",
+      );
+
+      setVisible("[data-book-next-link]", false);
     } else {
       setText("[data-book-next-title]", "Wie geht es weiter?");
+
       setText(
         "[data-book-next-text]",
         order.payment_method === "rechnung"
-          ? "Wir bereiten deine Bestellung fÃ¼r den Versand vor. Die Rechnung und Zahlungsinformationen erhÃ¤ltst du separat."
-          : "Deine Zahlung wurde bestÃ¤tigt. Wir bereiten deine Bestellung fÃ¼r den Versand vor.",
+          ? "Wir bereiten deine Bestellung f\u00fcr den Versand vor. Die Rechnung und Zahlungsinformationen erh\u00e4ltst du separat."
+          : "Deine Zahlung wurde best\u00e4tigt. Wir bereiten deine Bestellung f\u00fcr den Versand vor.",
       );
+
       setVisible("[data-book-next-link]", false);
     }
 
@@ -100,10 +120,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function showError(error) {
     console.error("[Book Success] Order load failed", error);
+
     setText(
       "[data-book-status]",
-      "Die Bestelldaten konnten nicht geladen werden. Bitte prÃ¼fe den Link in deiner E-Mail.",
+      "Die Bestelldaten konnten nicht geladen werden. Bitte pr\u00fcfe den Link in deiner E-Mail.",
     );
+
     setVisible("[data-book-next-step]", false);
   }
 
@@ -111,14 +133,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     let order;
 
     if (isPayPalReturn) {
-      order = await postJson(CAPTURE_ENDPOINT, { paypalOrderId });
+      order = await postJson(CAPTURE_ENDPOINT, {
+        paypalOrderId,
+      });
 
       const cleanUrl = new URL(window.location.href);
+
       cleanUrl.search = "";
       cleanUrl.searchParams.set("order", order.order_reference);
+
       window.history.replaceState({}, "", cleanUrl);
     } else if (orderReference) {
-      order = await postJson(GET_ORDER_ENDPOINT, { orderReference });
+      order = await postJson(GET_ORDER_ENDPOINT, {
+        orderReference,
+      });
     } else {
       throw new Error("Missing book order reference");
     }
