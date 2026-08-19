@@ -129,30 +129,32 @@ document.addEventListener("DOMContentLoaded", async () => {
     setVisible("[data-book-next-step]", false);
   }
 
+  function redirectToHome() {
+    window.location.replace("/");
+  }
+
   try {
     let order;
 
     if (isPayPalReturn) {
-      order = await postJson(CAPTURE_ENDPOINT, {
-        paypalOrderId,
-      });
+      order = await postJson(CAPTURE_ENDPOINT, { paypalOrderId });
 
       const cleanUrl = new URL(window.location.href);
-
       cleanUrl.search = "";
       cleanUrl.searchParams.set("order", order.order_reference);
-
       window.history.replaceState({}, "", cleanUrl);
     } else if (orderReference) {
-      order = await postJson(GET_ORDER_ENDPOINT, {
-        orderReference,
-      });
+      order = await postJson(GET_ORDER_ENDPOINT, { orderReference });
     } else {
-      throw new Error("Missing book order reference");
+      redirectToHome();
+      return;
     }
 
     renderOrder(order);
   } catch (error) {
-    showError(error);
+    console.error("[Book Success] Order load failed", error);
+    redirectToHome();
+  } finally {
+    document.body.classList.remove("is-loading-booking");
   }
 });
