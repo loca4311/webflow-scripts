@@ -520,6 +520,32 @@ document.addEventListener("DOMContentLoaded", async () => {
     return !isInvalid;
   }
 
+  function validateWaiver() {
+    const checkbox = form.querySelector("[data-book-waiver]");
+    const wrapper = form.querySelector("[data-book-waiver-wrapper]");
+    const checkboxLabel = checkbox?.closest(".form_checkbox");
+
+    if (!checkbox || !wrapper || !isFieldVisible(wrapper)) {
+      clearError(wrapper || checkbox);
+      return true;
+    }
+
+    const isInvalid = !checkbox.checked;
+
+    checkboxLabel?.classList.toggle("is-error", isInvalid);
+    wrapper.classList.toggle("is-error", isInvalid);
+    wrapper.querySelector(".form-error-message")?.remove();
+
+    if (isInvalid) {
+      showError(
+        wrapper,
+        "Bitte stimme der sofortigen Bereitstellung der digitalen Inhalte zu.",
+      );
+    }
+
+    return !isInvalid;
+  }
+
   function clearPaymentError() {
     const wrapper = form.querySelector(".payment-radio_component");
 
@@ -565,6 +591,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (field.id === "checkbox-2") {
           validateTerms();
         }
+
+        if (field.matches("[data-book-waiver]")) {
+          validateWaiver();
+        }
       });
     });
   }
@@ -587,6 +617,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       validateRequiredField("#Stadt", "Bitte gib deine Stadt ein."),
       validatePayment(),
       validateTerms(),
+      validateWaiver(),
     ];
 
     if (country === "Österreich") {
