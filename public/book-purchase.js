@@ -2,8 +2,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const form = document.querySelector("#bookOrderForm");
   if (!form) return;
 
-  form.noValidate = true;
-
   const SUPABASE_FUNCTIONS_URL =
     "https://tinguvlwumswhznygirl.supabase.co/functions/v1";
 
@@ -13,6 +11,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     createPayPalOrder: `${SUPABASE_FUNCTIONS_URL}/create-book-paypal-order`,
     sendInvoice: `${SUPABASE_FUNCTIONS_URL}/send-book-invoice-webhook`,
   };
+
+  const PRINT_SHIPPING_COST = 2.5;
 
   const state = {
     member: null,
@@ -53,9 +53,27 @@ document.addEventListener("DOMContentLoaded", async () => {
     }).format(number);
   }
 
+  function pricingForProduct(product) {
+    const productPrice = Number(product?.price);
+    const shippingCost =
+      product?.productType === "physical" ? PRINT_SHIPPING_COST : 0;
+
+    return {
+      productPrice,
+      shippingCost,
+      totalPrice: Number((productPrice + shippingCost).toFixed(2)),
+    };
+  }
+
   function setText(selector, value) {
     document.querySelectorAll(selector).forEach((element) => {
       element.textContent = value || "";
+    });
+  }
+
+  function setVisible(selector, visible) {
+    document.querySelectorAll(selector).forEach((element) => {
+      element.style.display = visible ? "" : "none";
     });
   }
 
@@ -121,7 +139,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    state.product = product;
+    const pricing = pricingForProduct(product);
+    state.product = { ...product, ...pricing, price: pricing.productPrice };
 
     document.querySelectorAll("[data-book-option]").forEach((option) => {
       const input = option.querySelector('input[name="book-format"]');
@@ -133,20 +152,52 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     document.querySelectorAll("[data-selected-price]").forEach((input) => {
-      input.value = product.price.toFixed(2);
+      input.value = pricing.productPrice.toFixed(2);
     });
+
+    document
+      .querySelectorAll("[data-selected-shipping-cost]")
+      .forEach((input) => {
+        input.value = pricing.shippingCost.toFixed(2);
+      });
+
+    document
+      .querySelectorAll("[data-selected-total-price]")
+      .forEach((input) => {
+        input.value = pricing.totalPrice.toFixed(2);
+      });
 
     setValue("[data-book-hidden-format]", product.format);
     setValue("[data-book-hidden-product-type]", product.productType);
     setValue("[data-book-hidden-plan-id]", product.planId);
-    setValue("[data-book-hidden-price]", product.price.toFixed(2));
+    setValue("[data-book-hidden-price]", pricing.productPrice.toFixed(2));
+    setValue(
+      "[data-book-hidden-shipping-cost]",
+      pricing.shippingCost.toFixed(2),
+    );
+    setValue("[data-book-hidden-total-price]", pricing.totalPrice.toFixed(2));
 
     setText("[data-book-form-format]", product.formatName);
-    setText("[data-book-submit-price]", formatPrice(product.price));
-    setText("[data-form-price]", formatPrice(product.price));
+    setText("[data-book-product-price]", formatPrice(pricing.productPrice));
+    setText("[data-book-shipping-cost]", formatPrice(pricing.shippingCost));
+    setText("[data-book-total-price]", formatPrice(pricing.totalPrice));
+    setText("[data-book-submit-price]", formatPrice(pricing.totalPrice));
+    setVisible("[data-book-shipping-row]", product.productType === "physical");
+
+    // Backwards-compatible fallback for the two existing modal price fields:
+    // the first is the product price and the last is the payable total.
+    const legacyPriceFields = Array.from(
+      document.querySelectorAll("[data-form-price]"),
+    );
+    legacyPriceFields.forEach((element, index) => {
+      const isLast = index === legacyPriceFields.length - 1;
+      element.textContent = formatPrice(
+        isLast ? pricing.totalPrice : pricing.productPrice,
+      );
+    });
 
     if (submitButton) {
-      submitButton.value = `Jetzt verbindlich bestellen — ${formatPrice(product.price)}`;
+      submitButton.value = `Jetzt verbindlich bestellen — ${formatPrice(pricing.totalPrice)}`;
     }
 
     syncWaiver();
@@ -454,6 +505,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       productType: state.product.productType,
       planId: state.product.planId,
       price: state.product.price,
+      shippingCost: state.product.shippingCost,
+      totalPrice: state.product.totalPrice,
       productUrl: window.location.href.split("?")[0],
       email: valueOf("#Email"),
       firstName: valueOf("#Vorname"),
