@@ -2,6 +2,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   const form = document.querySelector("#bookOrderForm");
   if (!form) return;
 
+  form.noValidate = true;
+
   const SUPABASE_FUNCTIONS_URL =
     "https://tinguvlwumswhznygirl.supabase.co/functions/v1";
 
