@@ -264,6 +264,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   async function checkExistingAccess() {
+    // Physical books may be purchased multiple times.
+    // Invalidate a pending digital access check after switching formats.
+    if (!isDigitalProduct()) {
+      state.accessRequest += 1;
+      emailInput?.classList.remove("is-checking");
+      setOwnedState(false);
+      return false;
+    }
+
     const email = emailInput?.value.trim().toLowerCase() || "";
     const planId = state.product?.planId || "";
 
