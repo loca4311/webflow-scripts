@@ -12,7 +12,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     sendInvoice: `${SUPABASE_FUNCTIONS_URL}/send-book-invoice-webhook`,
   };
 
-  const PRINT_SHIPPING_COST = 2.5;
+  const PRINT_SHIPPING_COST_DE = 2.5;
+  const PRINT_SHIPPING_COST_INTERNATIONAL = 4.5;
 
   const state = {
     member: null,
@@ -55,8 +56,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function pricingForProduct(product) {
     const productPrice = Number(product?.price);
+    const country = valueOf('select[name="Land"]');
+    const printShippingCost =
+      country === "Deutschland"
+        ? PRINT_SHIPPING_COST_DE
+        : PRINT_SHIPPING_COST_INTERNATIONAL;
     const shippingCost =
-      product?.productType === "physical" ? PRINT_SHIPPING_COST : 0;
+      product?.productType === "physical" ? printShippingCost : 0;
 
     return {
       productPrice,
@@ -461,6 +467,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       field.disabled = !show;
       if (!show) field.value = "";
     });
+
+    // Update the summary, buttons and payload after country changes or prefill.
+    if (state.product) syncProduct(state.product);
   }
 
   function updateCompanyFields() {
