@@ -108,13 +108,25 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function getSelectedProduct() {
-    const checked = document.querySelector(
-      '[data-book-options] input[name="book-format"]:checked',
+    const inputs = Array.from(
+      document.querySelectorAll(
+        '[data-book-options] input[name="book-format"]',
+      ),
     );
-    const first = document.querySelector(
-      '[data-book-options] input[name="book-format"]',
-    );
-    return selectedProductFromInput(checked || first);
+
+    let selected = inputs.find((input) => input.checked);
+
+    // Use the printed book as the default format.
+    if (!selected) {
+      selected =
+        inputs.find((input) => input.value === "printed") || inputs[0] || null;
+
+      if (selected) {
+        selected.checked = true;
+      }
+    }
+
+    return selectedProductFromInput(selected);
   }
 
   function isDigitalProduct() {
