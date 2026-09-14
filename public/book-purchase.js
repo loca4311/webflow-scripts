@@ -121,6 +121,45 @@ document.addEventListener("DOMContentLoaded", async () => {
     return state.product?.productType === "digital";
   }
 
+  function syncCountryAvailability(product = state.product) {
+    const countrySelect = form.querySelector('select[name="Land"]');
+    const switzerlandOption = countrySelect?.querySelector(
+      'option[value="Schweiz"]',
+    );
+
+    if (!countrySelect || !switzerlandOption) return;
+
+    const isPrinted = product?.productType === "physical";
+
+    // Switzerland is available only for digital products.
+    switzerlandOption.disabled = isPrinted;
+    switzerlandOption.textContent = isPrinted
+      ? "Schweiz (nur digital verfügbar)"
+      : "Schweiz";
+
+    const kantonField = form.querySelector("#Kanton");
+    const kantonWrapper = kantonField?.closest("[data-land]");
+    const showKanton = !isPrinted && countrySelect.value === "Schweiz";
+
+    if (kantonField && kantonWrapper) {
+      kantonWrapper.style.display = showKanton ? "block" : "none";
+      kantonField.disabled = !showKanton;
+
+      if (!showKanton) {
+        kantonField.value = "";
+      }
+    }
+
+    if (isPrinted && countrySelect.value === "Schweiz") {
+      showError(
+        countrySelect,
+        "Gedruckte Bücher können nicht in die Schweiz geliefert werden.",
+      );
+    } else {
+      clearError(countrySelect);
+    }
+  }
+
   function syncWaiver() {
     const wrapper = form.querySelector("[data-book-waiver-wrapper]");
     const checkbox =
@@ -144,6 +183,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       console.error("[Book Purchase] Invalid product configuration", product);
       return;
     }
+
+    syncCountryAvailability(product);
 
     const pricing = pricingForProduct(product);
     state.product = { ...product, ...pricing, price: pricing.productPrice };
@@ -398,6 +439,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     );
   }
 
+  function validateShippingCountry() {
+    const country = valueOf('select[name="Land"]');
+    const countryField = form.querySelector('select[name="Land"]');
+
+    if (state.product?.productType === "physical" && country === "Schweiz") {
+      return showError(
+        countryField,
+        "Gedruckte Bücher können nicht in die Schweiz geliefert werden.",
+      );
+    }
+
+    return true;
+  }
+
   function validateForm() {
     const country = valueOf('select[name="Land"]');
     const checks = [
@@ -405,6 +460,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       requireField("#Vorname", "Bitte gib deinen Vornamen ein."),
       requireField("#Nachname", "Bitte gib deinen Nachnamen ein."),
       requireField('select[name="Land"]', "Bitte wähle dein Land aus."),
+      validateShippingCountry(),
       requireField("#strasse", "Bitte gib deine Straße ein."),
       requireField("#hausnummer", "Bitte gib deine Hausnummer ein."),
       requireField("#plz", "Bitte gib deine PLZ ein."),
@@ -418,7 +474,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         requireField("#Bundesland", "Bitte wähle dein Bundesland aus."),
       );
     }
-    if (country === "Schweiz") {
+    if (country === "Schweiz" && isDigitalProduct()) {
       checks.push(requireField("#Kanton", "Bitte gib deinen Kanton ein."));
     }
     if (companyBooking()) {
@@ -462,7 +518,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       const field = form.querySelector(selector);
       const wrapper = field?.closest("[data-land]");
       if (!field || !wrapper) return;
-      const show = country === expected;
+      const show =
+        country === expected && (expected !== "Schweiz" || isDigitalProduct());
       wrapper.style.display = show ? "block" : "none";
       field.disabled = !show;
       if (!show) field.value = "";
