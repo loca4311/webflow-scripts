@@ -2,9 +2,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const form = document.querySelector("#orderForm");
   if (!form) return;
 
-  const CHECK_MEMBER_EMAIL_ENDPOINT =
-    "https://tinguvlwumswhznygirl.supabase.co/functions/v1/check-member-email";
-
   const CREATE_BOOKING_ENDPOINT =
     "https://tinguvlwumswhznygirl.supabase.co/functions/v1/create-booking";
 
@@ -17,10 +14,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const SEND_RECHNUNG_WEBHOOK_ENDPOINT =
     "https://tinguvlwumswhznygirl.supabase.co/functions/v1/send-rechnung-webhook";
 
-  const emailInput = form.querySelector("#Email");
-
   let currentMember = null;
-  let emailBelongsToMember = false;
   let currentCourseData = null;
 
   const MONTHS_DE_FULL = [
@@ -139,17 +133,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     return currentMember?.customFields?.[slug] || "";
   }
 
-  function shouldUseMemberPrice() {
-    const formEmail = emailInput?.value?.trim().toLowerCase() || "";
-    const memberEmail = currentMember?.auth?.email?.trim().toLowerCase() || "";
-
-    if (currentMember && formEmail && formEmail === memberEmail) {
-      return true;
-    }
-
-    return emailBelongsToMember;
-  }
-
   function prefillMemberData() {
     if (!currentMember) return;
 
@@ -169,35 +152,164 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (getMemberField("city")) setValue("#Stadt", getMemberField("city"));
   }
 
+  function hasSelectableMemberPrice() {
+    if (!currentCourseData) return false;
+
+    const regularPrice = normalizePrice(currentCourseData.regularPrice);
+    const memberPrice = normalizePrice(currentCourseData.memberPrice);
+
+    return (
+      regularPrice !== null &&
+      memberPrice !== null &&
+      memberPrice > 0 &&
+      memberPrice !== regularPrice
+    );
+  }
+
+  function getSelectedPriceType() {
+    const selected = form.querySelector(
+      'input[name="course-price-type"]:checked',
+    );
+
+    if (selected?.value === "member" && hasSelectableMemberPrice()) {
+      return "member";
+    }
+
+    return "regular";
+  }
+
+  function syncPriceOptionState() {
+    form.querySelectorAll("[data-course-price-option]").forEach((option) => {
+      const input = option.querySelector('input[name="course-price-type"]');
+
+      option.classList.toggle("is-active", !!input?.checked);
+    });
+  }
+
+  function resetCoursePriceSelection() {
+    form
+      .querySelectorAll('input[name="course-price-type"]')
+      .forEach((input) => {
+        input.checked = input.value === "regular";
+      });
+
+    syncPriceOptionState();
+  }
+
+  function setPaymentSelection(input, checked) {
+    if (!input) return;
+
+    input.checked = checked;
+
+    input.closest(".payment-radio_field")?.classList.toggle("active", checked);
+
+    input.previousElementSibling?.classList.toggle(
+      "w--redirected-checked",
+      checked,
+    );
+  }
+
+  function syncPaymentAvailability(priceType) {
+    const paypalInput = form.querySelector(
+      'input[name="payment"][value="paypal"]',
+    );
+
+    const rechnungInput = form.querySelector(
+      'input[name="payment"][value="rechnung"]',
+    );
+
+    const paypalCard = paypalInput?.closest(".payment-radio_field");
+
+    const isMemberPrice = priceType === "member";
+
+    if (paypalInput) {
+      paypalInput.disabled = isMemberPrice;
+    }
+
+    paypalCard?.classList.toggle("is-disabled", isMemberPrice);
+
+    paypalCard?.setAttribute("aria-disabled", String(isMemberPrice));
+
+    if (isMemberPrice) {
+      setPaymentSelection(paypalInput, false);
+      setPaymentSelection(rechnungInput, true);
+      clearPaymentError();
+    }
+  }
+
   function applyPrice() {
     if (!currentCourseData) return;
 
-    const isExistingMember = shouldUseMemberPrice();
+    const memberPriceAvailable = hasSelectableMemberPrice();
+
+    const priceOptions = form.querySelector("[data-course-price-options]");
+
+    const memberPriceOption = form.querySelector("[data-member-price-option]");
+
+    const memberPriceInput = form.querySelector(
+      'input[name="course-price-type"][value="member"]',
+    );
+
+    if (priceOptions) {
+      priceOptions.style.display = memberPriceAvailable ? "" : "none";
+    }
+
+    if (memberPriceOption) {
+      memberPriceOption.style.display = memberPriceAvailable ? "" : "none";
+    }
+
+    if (memberPriceInput) {
+      memberPriceInput.disabled = !memberPriceAvailable;
+    }
+
+    if (!memberPriceAvailable && memberPriceInput?.checked) {
+      resetCoursePriceSelection();
+    }
+
+    const priceType = getSelectedPriceType();
 
     const selectedPrice =
-      isExistingMember && currentCourseData.memberPrice
+      priceType === "member"
         ? currentCourseData.memberPrice
         : currentCourseData.regularPrice;
 
     const formattedPrice = formatPrice(selectedPrice);
+
     const formattedRegularPrice = formatPrice(currentCourseData.regularPrice);
+
+    const formattedMemberPrice = formatPrice(currentCourseData.memberPrice);
+
     const regularPriceEl = document.querySelector("[data-form-regular-price]");
 
+    setText(
+      "[data-course-regular-price]",
+      formattedRegularPrice ? `${formattedRegularPrice} €` : "",
+    );
+
+    setText(
+      "[data-course-member-price]",
+      formattedMemberPrice ? `${formattedMemberPrice} €` : "",
+    );
+
     setText("[data-form-price]", `€ ${formattedPrice}`);
+
     if (regularPriceEl) {
-      if (isExistingMember && currentCourseData.memberPrice) {
+      if (priceType === "member") {
         regularPriceEl.textContent = `€ ${formattedRegularPrice}`;
+
         regularPriceEl.classList.add("is-visible");
       } else {
         regularPriceEl.textContent = "";
         regularPriceEl.classList.remove("is-visible");
       }
     }
+
     setValue("[data-hidden-selected-price]", selectedPrice);
-    setValue(
-      "[data-hidden-price-type]",
-      isExistingMember ? "member" : "regular",
-    );
+
+    setValue("[data-hidden-price-type]", priceType);
+
+    syncPriceOptionState();
+    syncPaymentAvailability(priceType);
 
     const submitButton = form.querySelector('input[type="submit"]');
 
@@ -206,9 +318,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     console.log("[Booking Form] Price updated:", {
-      isExistingMember,
+      priceType,
       selectedPrice,
-      emailBelongsToMember,
+      memberPriceAvailable,
     });
   }
 
@@ -308,48 +420,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     setValue("[data-hidden-member-price]", currentCourseData.memberPrice);
     setValue("[data-hidden-plan-id]", currentCourseData.planId);
 
+    resetCoursePriceSelection();
     prefillMemberData();
     applyPrice();
-  }
-
-  async function checkEmailInMemberstack() {
-    const email = emailInput?.value?.trim().toLowerCase();
-
-    if (!email || !email.includes("@")) {
-      emailBelongsToMember = false;
-      applyPrice();
-      return;
-    }
-
-    try {
-      emailInput.classList.add("is-checking");
-
-      const response = await fetch(CHECK_MEMBER_EMAIL_ENDPOINT, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-
-      emailBelongsToMember = !!data.exists;
-
-      applyPrice();
-
-      console.log("[Booking Form] Email check:", {
-        email,
-        exists: emailBelongsToMember,
-      });
-    } catch (error) {
-      console.error("[Booking Form] Email check failed:", error);
-
-      emailBelongsToMember = false;
-      applyPrice();
-    } finally {
-      emailInput.classList.remove("is-checking");
-    }
   }
 
   function getInputValue(selector) {
@@ -357,9 +430,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function getSelectedPaymentMethod() {
-    return (
-      form.querySelector('input[name="payment"]:checked')?.value || "rechnung"
-    );
+    return form.querySelector('input[name="payment"]:checked')?.value || "";
   }
 
   function getCompanyBookingValue() {
@@ -481,7 +552,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       form.querySelector('input[name="payment"]:checked') ||
       form.querySelector(".payment-radio_field.active input[name='payment']");
 
-    const isInvalid = !checkedPayment;
+    const isInvalid =
+      !checkedPayment ||
+      checkedPayment.disabled ||
+      (getSelectedPriceType() === "member" &&
+        checkedPayment.value !== "rechnung");
 
     wrapper?.classList.toggle("is-error", isInvalid);
 
@@ -557,13 +632,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
+  form.querySelectorAll('input[name="course-price-type"]').forEach((input) => {
+    input.addEventListener("change", () => {
+      if (!input.checked) return;
+
+      applyPrice();
+    });
+  });
+
   form.querySelectorAll(".payment-radio_field").forEach((card) => {
     card.addEventListener("click", () => {
       const input = card.querySelector('input[type="radio"]');
 
-      if (input) {
+      if (input && !input.disabled) {
         input.checked = true;
+
         input.dispatchEvent(new Event("change", { bubbles: true }));
+      } else {
+        return;
       }
 
       clearPaymentError();
@@ -816,8 +902,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       price: normalizePrice(getInputValue("[data-hidden-selected-price]")),
       priceType: getInputValue("[data-hidden-price-type]"),
 
-      memberId: currentMember?.id || "",
-      memberExists: !!currentMember || emailBelongsToMember,
+      memberId: "",
+      memberExists: false,
     };
 
     try {
@@ -829,6 +915,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (accessCheck.hasAccess) {
         throw new Error("Du hast diesen Kurs bereits gekauft.");
       }
+
+      payload.memberExists = !!accessCheck.exists;
+      payload.memberId = accessCheck.memberId || "";
 
       const response = await fetch(CREATE_BOOKING_ENDPOINT, {
         method: "POST",
@@ -923,8 +1012,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     updateBookingForm(button);
   });
-
-  emailInput?.addEventListener("blur", checkEmailInMemberstack);
 
   const submitButton = form.querySelector('input[type="submit"]');
 
