@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const params = new URLSearchParams(window.location.search);
   const paypalOrderId = params.get("token");
   const orderReference = params.get("order");
+  const lookupToken = params.get("lookup");
 
   const isPayPalReturn =
     params.get("payment") === "success" &&
@@ -142,9 +143,15 @@ document.addEventListener("DOMContentLoaded", async () => {
       const cleanUrl = new URL(window.location.href);
       cleanUrl.search = "";
       cleanUrl.searchParams.set("order", order.order_reference);
+      if (order.lookup_token) {
+        cleanUrl.searchParams.set("lookup", order.lookup_token);
+      }
       window.history.replaceState({}, "", cleanUrl);
     } else if (orderReference) {
-      order = await postJson(GET_ORDER_ENDPOINT, { orderReference });
+      order = await postJson(GET_ORDER_ENDPOINT, {
+        orderReference,
+        lookupToken,
+      });
     } else {
       redirectToHome();
       return;
