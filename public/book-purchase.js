@@ -242,6 +242,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     setText("[data-book-total-price]", formatPrice(pricing.totalPrice));
     setText("[data-book-submit-price]", formatPrice(pricing.productPrice));
     setVisible("[data-book-shipping-row]", product.productType === "physical");
+    setVisible(
+      "[data-book-withdrawal-trust]",
+      product.productType === "physical",
+    );
 
     // Backwards-compatible fallback for the two existing modal price fields:
     // the first is the product price and the last is the payable total.
