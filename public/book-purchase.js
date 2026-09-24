@@ -185,7 +185,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (checkbox) {
       checkbox.disabled = !show;
-      checkbox.required = show;
+      checkbox.required = false;
       if (!show) checkbox.checked = false;
     }
   }
@@ -478,7 +478,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       requireField("#plz", "Bitte gib deine PLZ ein."),
       requireField("#Stadt", "Bitte gib deine Stadt ein."),
       validatePayment(),
-      validateCheckbox("#checkbox-2", "Bitte stimme den Bedingungen zu."),
+      validateCheckbox("#book-terms", "Bitte stimme den Bedingungen zu."),
     ];
 
     if (country === "Österreich") {
