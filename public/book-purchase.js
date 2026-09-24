@@ -240,7 +240,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     setText("[data-book-product-price]", formatPrice(pricing.productPrice));
     setText("[data-book-shipping-cost]", formatPrice(pricing.shippingCost));
     setText("[data-book-total-price]", formatPrice(pricing.totalPrice));
-    setText("[data-book-submit-price]", formatPrice(pricing.totalPrice));
+    setText("[data-book-submit-price]", formatPrice(pricing.productPrice));
     setVisible("[data-book-shipping-row]", product.productType === "physical");
 
     // Backwards-compatible fallback for the two existing modal price fields:
