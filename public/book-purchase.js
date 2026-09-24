@@ -14,12 +14,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const PRINT_SHIPPING_COST_DE = 2.5;
   const PRINT_SHIPPING_COST_INTERNATIONAL = 4.5;
+  const ACCESS_CACHE_TTL = 5 * 60 * 1000;
 
   const state = {
     member: null,
     product: null,
     submitting: false,
     accessRequest: 0,
+    accessCache: new Map(),
+    accessInFlight: new Map(),
   };
 
   const emailInput = form.querySelector("#Email");
@@ -28,6 +31,27 @@ document.addEventListener("DOMContentLoaded", async () => {
     form.querySelector("[data-book-owned]") ||
     form.querySelector("[data-course-owned]") ||
     form.querySelector(".course-already-owned");
+  const processingMessage = (() => {
+    const existing = form.querySelector("[data-book-processing]");
+    if (existing) return existing;
+    if (!submitButton) return null;
+
+    const message = document.createElement("div");
+    message.dataset.bookProcessing = "";
+    message.setAttribute("role", "status");
+    message.setAttribute("aria-live", "polite");
+    message.hidden = true;
+    message.textContent =
+      "Deine Bestellung wird verarbeitet. Bitte schließe dieses Fenster nicht.";
+    message.style.cssText =
+      "margin-top:12px;text-align:center;font-size:0.875rem;line-height:1.4;";
+    submitButton.insertAdjacentElement("afterend", message);
+    return message;
+  })();
+
+  function setProcessingState(active) {
+    if (processingMessage) processingMessage.hidden = !active;
+  }
 
   function parsePrice(value) {
     let normalized = String(value || "")
@@ -344,27 +368,51 @@ document.addEventListener("DOMContentLoaded", async () => {
       return false;
     }
 
+    const cacheKey = `${email}::${planId}`;
+    const cached = state.accessCache.get(cacheKey);
+    if (cached && Date.now() - cached.checkedAt < ACCESS_CACHE_TTL) {
+      setOwnedState(cached.hasAccess);
+      return cached.hasAccess;
+    }
+
     const requestId = ++state.accessRequest;
 
     try {
       emailInput?.classList.add("is-checking");
 
-      const response = await fetch(ENDPOINTS.checkAccess, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, planId }),
-      });
-      const data = await response.json();
+      let accessPromise = state.accessInFlight.get(cacheKey);
+      if (!accessPromise) {
+        accessPromise = (async () => {
+          const response = await fetch(ENDPOINTS.checkAccess, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, planId }),
+          });
+          const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || "Access check failed");
+          if (!response.ok) {
+            throw new Error(data.error || "Access check failed");
+          }
+
+          const hasAccess = Boolean(data.hasAccess);
+          state.accessCache.set(cacheKey, {
+            hasAccess,
+            checkedAt: Date.now(),
+          });
+          return hasAccess;
+        })().finally(() => {
+          state.accessInFlight.delete(cacheKey);
+        });
+        state.accessInFlight.set(cacheKey, accessPromise);
       }
+
+      const hasAccess = await accessPromise;
 
       if (requestId === state.accessRequest) {
-        setOwnedState(Boolean(data.hasAccess));
+        setOwnedState(hasAccess);
       }
 
-      return Boolean(data.hasAccess);
+      return hasAccess;
     } catch (error) {
       console.error("[Book Purchase] Access check failed", error);
       if (requestId === state.accessRequest) setOwnedState(false);
@@ -648,6 +696,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!validateForm()) return;
 
     state.submitting = true;
+    setProcessingState(true);
     const originalLabel = submitButton?.value || "Jetzt verbindlich bestellen";
     if (submitButton) {
       submitButton.disabled = true;
@@ -682,6 +731,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       showFailure(error.message || "Es ist ein Fehler aufgetreten.");
     } finally {
       state.submitting = false;
+      setProcessingState(false);
       if (submitButton && document.body.contains(submitButton)) {
         submitButton.disabled = Boolean(
           ownedMessage?.style.display === "block",
@@ -743,6 +793,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     .querySelector('select[name="Land"]')
     ?.addEventListener("change", updateCountryFields);
   emailInput?.addEventListener("blur", checkExistingAccess);
+  emailInput?.addEventListener("input", () => {
+    state.accessRequest += 1;
+    emailInput.classList.remove("is-checking");
+    setOwnedState(false);
+  });
 
   form.querySelectorAll("input, select, textarea").forEach((field) => {
     field.addEventListener("input", () => clearError(field));
